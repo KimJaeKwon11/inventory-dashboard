@@ -465,10 +465,8 @@
   // 수량 색상 (기준치 없으면 고정 green)
   function getQtyColor(qty, max) {
     if (!max || max <= 0) return '#00897b';
-    const r = qty / max;
-    if (r <= 0.1) return '#c62828';
-    if (r <= 0.3) return '#f57c00';
-    return '#00897b';
+    if (qty < max) return '#c62828';   // 기준치 미만 → 빨강
+    return '#00897b';                   // 기준치 이상 → 초록
   }
 
   // 데이터 로드
@@ -520,7 +518,7 @@
     const lowCount = data.filter(r => {
       const qty = Number(r['수량']) || 0;
       const max = Number(r['기준치']) || 0;
-      if (max > 0) return qty / max <= 0.3;
+      if (max > 0) return qty < max;
       return qty <= 10;
     }).length;
 
