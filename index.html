@@ -428,12 +428,27 @@
   updateClock();
   setInterval(updateClock, 1000);
 
+  // 날짜 문자열 정규화 (T00:00:00.000Z 형식 → YYYY-MM-DD)
+  function normalizeDate(exp) {
+    if (!exp || exp === '-' || exp === '') return '';
+    const s = String(exp);
+    // ISO 형식이면 날짜 부분만 추출
+    if (s.includes('T')) return s.substring(0, 10);
+    return s;
+  }
+
   // 유통기한 상태
   function getExpStatus(exp) {
-    if (!exp || exp === '-' || exp === '') return { label: '해당없음', cls: 'badge-na' };
-    const d = new Date(exp);
+    const dateStr = normalizeDate(exp);
+    if (!dateStr) return { label: '해당없음', cls: 'badge-na' };
+    // YYYY-MM-DD를 로컬 자정 기준으로 파싱
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return { label: '해당없음', cls: 'badge-na' };
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
     if (isNaN(d)) return { label: '해당없음', cls: 'badge-na' };
-    const diff = Math.ceil((d - new Date()) / 86400000);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = Math.ceil((d - today) / 86400000);
     if (diff < 0) return { label: '만료됨', cls: 'badge-danger' };
     if (diff <= 30) return { label: `D-${diff}`, cls: 'badge-danger' };
     if (diff <= 90) return { label: `D-${diff}`, cls: 'badge-warn' };
@@ -525,7 +540,7 @@
       const max = Number(r['최대수량']) || 0;
       const pct = max > 0 ? Math.min(100, Math.round(qty / max * 100)) : 50;
       const color = getQtyColor(qty, max);
-      const exp = r['유통기한'] || '';
+      const exp = normalizeDate(r['유통기한'] || '');
       const status = getExpStatus(exp);
       const ward = (r['병동'] || '').trim();
 
