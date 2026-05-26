@@ -395,12 +395,13 @@
     <table>
       <thead>
         <tr>
-          <th style="width:26%">품목명</th>
-          <th style="width:20%">수량</th>
-          <th style="width:9%">단위</th>
-          <th style="width:16%">유통기한</th>
+          <th style="width:22%">품목명</th>
+          <th style="width:10%">기준치</th>
+          <th style="width:16%">수량</th>
+          <th style="width:8%">단위</th>
+          <th style="width:14%">유통기한</th>
           <th style="width:13%">상태</th>
-          <th style="width:16%">병동</th>
+          <th style="width:17%">병동</th>
         </tr>
       </thead>
       <tbody id="inv-body">
@@ -461,7 +462,7 @@
     return { label: '정상', cls: 'badge-ok' };
   }
 
-  // 수량 색상 (최대수량 없으면 고정 green)
+  // 수량 색상 (기준치 없으면 고정 green)
   function getQtyColor(qty, max) {
     if (!max || max <= 0) return '#00897b';
     const r = qty / max;
@@ -515,10 +516,10 @@
       return Math.ceil((d - today) / 86400000) <= 30;
     }).length;
 
-    // 부족 재고: 최대수량 컬럼이 있으면 비교, 없으면 수량 10 이하로 fallback
+    // 부족 재고: 기준치 컬럼이 있으면 비교, 없으면 수량 10 이하로 fallback
     const lowCount = data.filter(r => {
       const qty = Number(r['수량']) || 0;
-      const max = Number(r['최대수량']) || 0;
+      const max = Number(r['기준치']) || 0;
       if (max > 0) return qty / max <= 0.3;
       return qty <= 10;
     }).length;
@@ -543,7 +544,7 @@
 
     tbody.innerHTML = data.map(r => {
       const qty = Number(r['수량']) || 0;
-      const max = Number(r['최대수량']) || 0;
+      const max = Number(r['기준치']) || 0;
       const pct = max > 0 ? Math.min(100, Math.round(qty / max * 100)) : 50;
       const color = getQtyColor(qty, max);
       const exp = normalizeDate(r['유통기한'] || '');
@@ -552,6 +553,7 @@
 
       return `<tr>
         <td class="item-name">${r['품목명'] || '-'}</td>
+        <td style="color:#7a8aaa; text-align:center">${max || '-'}</td>
         <td>
           <div class="qty-wrap">
             <span class="qty-num">${qty}</span>
