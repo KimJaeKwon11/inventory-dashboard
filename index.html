@@ -111,7 +111,7 @@
   /* 요약 카드 */
   .summary-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 12px;
     margin-bottom: 1.25rem;
   }
@@ -127,6 +127,8 @@
   .summary-card.teal { border-left-color: #00897b; }
   .summary-card.orange { border-left-color: #f57c00; }
   .summary-card.red { border-left-color: #c62828; }
+  .summary-card.yellow { border-left-color: #f9a825; }
+  .summary-card.active-filter { box-shadow: 0 0 0 2px #1976d2; }
 
   .summary-card .s-label {
     font-size: 12px;
@@ -327,6 +329,7 @@
 
   @media (max-width: 768px) {
     .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .summary-card .s-label { font-size: 11px; }
     .clock-time { font-size: 17px; }
     header { padding: 0 1rem; }
     .container { padding: 1rem; }
@@ -363,25 +366,30 @@
   </div>
 
   <div class="summary-grid" id="summary-grid">
-    <div class="summary-card blue">
+    <div class="summary-card blue" onclick="setCardFilter('전체')" style="cursor:pointer">
       <div class="s-label">전체 품목 수</div>
       <div class="s-value" id="s-total">—</div>
       <div class="s-sub">종류</div>
     </div>
-    <div class="summary-card teal">
+    <div class="summary-card teal" onclick="setCardFilter('전체')" style="cursor:pointer">
       <div class="s-label">총 재고 수량</div>
       <div class="s-value" id="s-qty">—</div>
       <div class="s-sub">전체 합계</div>
     </div>
-    <div class="summary-card orange">
-      <div class="s-label">부족 재고</div>
+    <div class="summary-card orange" onclick="setCardFilter('부족')" style="cursor:pointer" title="클릭하면 부족 재고만 표시">
+      <div class="s-label">부족 재고 ↗</div>
       <div class="s-value" id="s-low">—</div>
-      <div class="s-sub">기준치 30% 이하</div>
+      <div class="s-sub">기준치 미만</div>
     </div>
-    <div class="summary-card red">
-      <div class="s-label">유통기한 임박·만료</div>
+    <div class="summary-card yellow" onclick="setCardFilter('임박')" style="cursor:pointer" title="클릭하면 유통기한 임박 목록만 표시">
+      <div class="s-label">유통기한 임박 ↗</div>
+      <div class="s-value" id="s-soon">—</div>
+      <div class="s-sub">7일 이내</div>
+    </div>
+    <div class="summary-card red" onclick="setCardFilter('만료')" style="cursor:pointer" title="클릭하면 만료 목록만 표시">
+      <div class="s-label">유통기한 만료 ↗</div>
       <div class="s-value" id="s-exp">—</div>
-      <div class="s-sub">30일 이내</div>
+      <div class="s-sub">이미 만료됨</div>
     </div>
   </div>
 
@@ -420,6 +428,7 @@
 
   let allData = [];
   let currentWard = '전체';
+  let currentFilter = '전체'; // 전체, 부족, 임박, 만료
 
   // 시계
   function updateClock() {
@@ -494,28 +503,72 @@
 
   // 필터 + 렌더
   function render() {
-    const data = currentWard === '전체'
+    const wardData = currentWard === '전체'
       ? allData
       : allData.filter(r => (r['병동'] || '').trim() === currentWard);
 
-    document.getElementById('table-title').textContent =
-      currentWard === '전체' ? '전체 재고 목록' : `${currentWard} 재고 목록`;
+    const today2 = new Date(); today2.setHours(0,0,0,0);
+
+    let data = wardData;
+    let titleSuffix = currentWard === '전체' ? '전체 재고 목록' : `${currentWard} 재고 목록`;
+
+    if (currentFilter === '부족') {
+      data = wardData.filter(r => {
+        const qty = Number(r['수량']) || 0;
+        const max = Number(r['기준치']) || 0;
+        return max > 0 ? qty < max : qty <= 10;
+      });
+      titleSuffix = '부족 재고 목록';
+    } else if (currentFilter === '임박') {
+      data = wardData.filter(r => {
+        const ds = normalizeDate(r['유통기한'] || '');
+        if (!ds) return false;
+        const parts = ds.split('-');
+        if (parts.length !== 3) return false;
+        const d = new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
+        const diff = Math.ceil((d - today2) / 86400000);
+        return diff >= 0 && diff <= 7;
+      });
+      titleSuffix = '유통기한 임박 목록 (7일 이내)';
+    } else if (currentFilter === '만료') {
+      data = wardData.filter(r => {
+        const ds = normalizeDate(r['유통기한'] || '');
+        if (!ds) return false;
+        const parts = ds.split('-');
+        if (parts.length !== 3) return false;
+        const d = new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
+        return Math.ceil((d - today2) / 86400000) < 0;
+      });
+      titleSuffix = '유통기한 만료 목록';
+    }
+
+    document.getElementById('table-title').textContent = titleSuffix;
 
     // 요약
-    const total = data.length;
-    const totalQty = data.reduce((s, r) => s + (Number(r['수량']) || 0), 0);
+    const total = wardData.length;
+    const totalQty = wardData.reduce((s, r) => s + (Number(r['수량']) || 0), 0);
 
-    const today = new Date();
-    const expCount = data.filter(r => {
-      const exp = r['유통기한'];
-      if (!exp || exp === '-') return false;
-      const d = new Date(exp);
-      if (isNaN(d)) return false;
-      return Math.ceil((d - today) / 86400000) <= 30;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const soonCount = wardData.filter(r => {
+      const ds = normalizeDate(r['유통기한'] || '');
+      if (!ds) return false;
+      const parts = ds.split('-');
+      if (parts.length !== 3) return false;
+      const d = new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
+      const diff = Math.ceil((d - today) / 86400000);
+      return diff >= 0 && diff <= 7;
+    }).length;
+    const expiredCount = wardData.filter(r => {
+      const ds = normalizeDate(r['유통기한'] || '');
+      if (!ds) return false;
+      const parts = ds.split('-');
+      if (parts.length !== 3) return false;
+      const d = new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
+      return Math.ceil((d - today) / 86400000) < 0;
     }).length;
 
     // 부족 재고: 기준치 컬럼이 있으면 비교, 없으면 수량 10 이하로 fallback
-    const lowCount = data.filter(r => {
+    const lowCount = wardData.filter(r => {
       const qty = Number(r['수량']) || 0;
       const max = Number(r['기준치']) || 0;
       if (max > 0) return qty < max;
@@ -529,9 +582,13 @@
     lowEl.textContent = lowCount;
     lowEl.className = 's-value' + (lowCount > 0 ? ' warn' : '');
 
+    const soonEl = document.getElementById('s-soon');
+    soonEl.textContent = soonCount;
+    soonEl.className = 's-value' + (soonCount > 0 ? ' warn' : '');
+
     const expEl = document.getElementById('s-exp');
-    expEl.textContent = expCount;
-    expEl.className = 's-value' + (expCount > 0 ? ' danger' : '');
+    expEl.textContent = expiredCount;
+    expEl.className = 's-value' + (expiredCount > 0 ? ' danger' : '');
 
     // 테이블
     const tbody = document.getElementById('inv-body');
@@ -568,6 +625,17 @@
     }).join('');
   }
 
+  // 카드 필터
+  function setCardFilter(filter) {
+    currentFilter = filter;
+    document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('active-filter'));
+    const map = { '부족': 2, '임박': 3, '만료': 4 };
+    if (map[filter] !== undefined) {
+      document.querySelectorAll('.summary-card')[map[filter]].classList.add('active-filter');
+    }
+    render();
+  }
+
   // 탭 클릭
   document.getElementById('ward-tabs').addEventListener('click', e => {
     const btn = e.target.closest('.ward-tab');
@@ -575,6 +643,8 @@
     document.querySelectorAll('.ward-tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentWard = btn.dataset.ward;
+    currentFilter = '전체';
+    document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('active-filter'));
     render();
   });
 
