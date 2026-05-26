@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>재고 현황 대시보드</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    min-height: 100vh;
+  }
+
+  header {
+    background: #0d1b3e;
+    color: #fff;
+    padding: 0 2rem;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .header-logo {
+    width: 8px;
+    height: 32px;
+    background: #4fc3f7;
+    border-radius: 2px;
+  }
+
+  header h1 {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  header .sub {
+    font-size: 12px;
+    color: #90caf9;
+    margin-top: 1px;
+  }
+
+  .clock-area {
+    text-align: right;
+  }
+
+  .clock-date {
+    font-size: 12px;
+    color: #90caf9;
+  }
+
+  .clock-time {
+    font-size: 22px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 1px;
+    color: #fff;
+  }
+
+  .container {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 1.5rem;
+  }
+
+  /* 탭 */
+  .ward-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+  }
+
+  .ward-tab {
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1.5px solid #c9d4e8;
+    border-radius: 20px;
+    background: #fff;
+    color: #5a6a85;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .ward-tab:hover {
+    border-color: #4fc3f7;
+    color: #0d1b3e;
+  }
+
+  .ward-tab.active {
+    background: #0d1b3e;
+    border-color: #0d1b3e;
+    color: #fff;
+  }
+
+  /* 요약 카드 */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 1.25rem;
+  }
+
+  .summary-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    border-left: 4px solid #c9d4e8;
+  }
+
+  .summary-card.blue { border-left-color: #1976d2; }
+  .summary-card.teal { border-left-color: #00897b; }
+  .summary-card.orange { border-left-color: #f57c00; }
+  .summary-card.red { border-left-color: #c62828; }
+
+  .summary-card .s-label {
+    font-size: 12px;
+    color: #7a8aaa;
+    margin-bottom: 6px;
+  }
+
+  .summary-card .s-value {
+    font-size: 26px;
+    font-weight: 700;
+    color: #0d1b3e;
+    line-height: 1;
+  }
+
+  .summary-card .s-sub {
+    font-size: 11px;
+    color: #aab0c0;
+    margin-top: 4px;
+  }
+
+  .s-value.warn { color: #e65100; }
+  .s-value.danger { color: #c62828; }
+
+  /* 테이블 카드 */
+  .table-card {
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem 0.75rem;
+    border-bottom: 1px solid #edf0f7;
+  }
+
+  .table-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0d1b3e;
+  }
+
+  .refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    font-size: 12px;
+    border: 1px solid #c9d4e8;
+    border-radius: 6px;
+    background: #fff;
+    color: #5a6a85;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .refresh-btn:hover {
+    background: #f0f2f5;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid #c9d4e8;
+    border-top-color: #1976d2;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+
+  thead tr {
+    background: #f7f9fc;
+  }
+
+  thead th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #7a8aaa;
+    letter-spacing: 0.3px;
+    border-bottom: 1px solid #edf0f7;
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid #f3f5f9;
+    transition: background 0.1s;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #f7f9fc; }
+
+  tbody td {
+    padding: 11px 14px;
+    color: #1a1a2e;
+    vertical-align: middle;
+  }
+
+  .item-name {
+    font-weight: 500;
+  }
+
+  /* 수량 바 */
+  .qty-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .qty-num {
+    min-width: 32px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+
+  .qty-bar {
+    flex: 1;
+    min-width: 60px;
+    height: 6px;
+    background: #edf0f7;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .qty-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  /* 유통기한 상태 뱃지 */
+  .badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .badge-ok { background: #e8f5e9; color: #2e7d32; }
+  .badge-warn { background: #fff3e0; color: #e65100; }
+  .badge-danger { background: #ffebee; color: #c62828; }
+  .badge-na { background: #f0f2f5; color: #7a8aaa; }
+
+  .ward-label {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #e3f2fd;
+    color: #1565c0;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* 로딩/에러 상태 */
+  .state-row td {
+    text-align: center;
+    padding: 3rem;
+    color: #7a8aaa;
+    font-size: 14px;
+  }
+
+  .loading-dot::after {
+    content: '';
+    animation: dots 1.2s infinite;
+  }
+
+  @keyframes dots {
+    0% { content: ''; }
+    33% { content: '.'; }
+    66% { content: '..'; }
+    100% { content: '...'; }
+  }
+
+  /* 마지막 업데이트 */
+  .last-update {
+    text-align: right;
+    font-size: 11px;
+    color: #aab0c0;
+    padding: 8px 14px;
+    border-top: 1px solid #edf0f7;
+  }
+
+  @media (max-width: 768px) {
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .clock-time { font-size: 17px; }
+    header { padding: 0 1rem; }
+    .container { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="header-logo"></div>
+    <div>
+      <h1>재고 현황 대시보드</h1>
+      <div class="sub">병동별 의약품·물품 재고 모니터링</div>
+    </div>
+  </div>
+  <div class="clock-area">
+    <div class="clock-date" id="clock-date"></div>
+    <div class="clock-time" id="clock-time"></div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="ward-tabs" id="ward-tabs">
+    <button class="ward-tab active" data-ward="전체">전체</button>
+    <button class="ward-tab" data-ward="4병동">4병동</button>
+    <button class="ward-tab" data-ward="5A병동">5A병동</button>
+    <button class="ward-tab" data-ward="5B병동">5B병동</button>
+    <button class="ward-tab" data-ward="6병동">6병동</button>
+    <button class="ward-tab" data-ward="7병동">7병동</button>
+    <button class="ward-tab" data-ward="8병동">8병동</button>
+    <button class="ward-tab" data-ward="중환자실">중환자실</button>
+  </div>
+
+  <div class="summary-grid" id="summary-grid">
+    <div class="summary-card blue">
+      <div class="s-label">전체 품목 수</div>
+      <div class="s-value" id="s-total">—</div>
+      <div class="s-sub">종류</div>
+    </div>
+    <div class="summary-card teal">
+      <div class="s-label">총 재고 수량</div>
+      <div class="s-value" id="s-qty">—</div>
+      <div class="s-sub">전체 합계</div>
+    </div>
+    <div class="summary-card orange">
+      <div class="s-label">부족 재고</div>
+      <div class="s-value" id="s-low">—</div>
+      <div class="s-sub">기준치 30% 이하</div>
+    </div>
+    <div class="summary-card red">
+      <div class="s-label">유통기한 임박·만료</div>
+      <div class="s-value" id="s-exp">—</div>
+      <div class="s-sub">30일 이내</div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <span class="table-title" id="table-title">전체 재고 목록</span>
+      <button class="refresh-btn" onclick="loadData()">
+        <span id="refresh-icon">↻</span> 새로고침
+      </button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:26%">품목명</th>
+          <th style="width:20%">수량</th>
+          <th style="width:9%">단위</th>
+          <th style="width:16%">유통기한</th>
+          <th style="width:13%">상태</th>
+          <th style="width:16%">병동</th>
+        </tr>
+      </thead>
+      <tbody id="inv-body">
+        <tr class="state-row">
+          <td colspan="6"><span class="loading-dot">데이터 불러오는 중</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="last-update" id="last-update"></div>
+  </div>
+
+</div>
+
+<script>
+  const API_URL = 'https://script.google.com/macros/s/AKfycbw1FQBo9dSJ_3-0kEfs1-jwUyHJrWH9Exz0JHwfjvLVjcXCFlhDakO7GcQaxbE4wcm8/exec';
+
+  let allData = [];
+  let currentWard = '전체';
+
+  // 시계
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('clock-date').textContent =
+      now.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+    document.getElementById('clock-time').textContent =
+      now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // 유통기한 상태
+  function getExpStatus(exp) {
+    if (!exp || exp === '-' || exp === '') return { label: '해당없음', cls: 'badge-na' };
+    const d = new Date(exp);
+    if (isNaN(d)) return { label: '해당없음', cls: 'badge-na' };
+    const diff = Math.ceil((d - new Date()) / 86400000);
+    if (diff < 0) return { label: '만료됨', cls: 'badge-danger' };
+    if (diff <= 30) return { label: `D-${diff}`, cls: 'badge-danger' };
+    if (diff <= 90) return { label: `D-${diff}`, cls: 'badge-warn' };
+    return { label: '정상', cls: 'badge-ok' };
+  }
+
+  // 수량 색상 (최대수량 없으면 고정 green)
+  function getQtyColor(qty, max) {
+    if (!max || max <= 0) return '#00897b';
+    const r = qty / max;
+    if (r <= 0.1) return '#c62828';
+    if (r <= 0.3) return '#f57c00';
+    return '#00897b';
+  }
+
+  // 데이터 로드
+  async function loadData() {
+    const icon = document.getElementById('refresh-icon');
+    icon.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      const res = await fetch(API_URL);
+      if (!res.ok) throw new Error('네트워크 오류');
+      allData = await res.json();
+
+      const now = new Date();
+      document.getElementById('last-update').textContent =
+        `마지막 업데이트: ${now.toLocaleTimeString('ko-KR')}`;
+
+      render();
+    } catch (e) {
+      document.getElementById('inv-body').innerHTML =
+        `<tr class="state-row"><td colspan="6">⚠️ 데이터를 불러오지 못했습니다. Google Sheets 연결을 확인해주세요.<br><small style="color:#aaa">${e.message}</small></td></tr>`;
+    } finally {
+      icon.textContent = '↻';
+    }
+  }
+
+  // 필터 + 렌더
+  function render() {
+    const data = currentWard === '전체'
+      ? allData
+      : allData.filter(r => (r['병동'] || '').trim() === currentWard);
+
+    document.getElementById('table-title').textContent =
+      currentWard === '전체' ? '전체 재고 목록' : `${currentWard} 재고 목록`;
+
+    // 요약
+    const total = data.length;
+    const totalQty = data.reduce((s, r) => s + (Number(r['수량']) || 0), 0);
+
+    const today = new Date();
+    const expCount = data.filter(r => {
+      const exp = r['유통기한'];
+      if (!exp || exp === '-') return false;
+      const d = new Date(exp);
+      if (isNaN(d)) return false;
+      return Math.ceil((d - today) / 86400000) <= 30;
+    }).length;
+
+    // 부족 재고: 최대수량 컬럼이 있으면 비교, 없으면 수량 10 이하로 fallback
+    const lowCount = data.filter(r => {
+      const qty = Number(r['수량']) || 0;
+      const max = Number(r['최대수량']) || 0;
+      if (max > 0) return qty / max <= 0.3;
+      return qty <= 10;
+    }).length;
+
+    document.getElementById('s-total').textContent = total;
+    document.getElementById('s-qty').textContent = totalQty.toLocaleString();
+
+    const lowEl = document.getElementById('s-low');
+    lowEl.textContent = lowCount;
+    lowEl.className = 's-value' + (lowCount > 0 ? ' warn' : '');
+
+    const expEl = document.getElementById('s-exp');
+    expEl.textContent = expCount;
+    expEl.className = 's-value' + (expCount > 0 ? ' danger' : '');
+
+    // 테이블
+    const tbody = document.getElementById('inv-body');
+    if (data.length === 0) {
+      tbody.innerHTML = '<tr class="state-row"><td colspan="6">해당 병동의 재고 데이터가 없습니다.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.map(r => {
+      const qty = Number(r['수량']) || 0;
+      const max = Number(r['최대수량']) || 0;
+      const pct = max > 0 ? Math.min(100, Math.round(qty / max * 100)) : 50;
+      const color = getQtyColor(qty, max);
+      const exp = r['유통기한'] || '';
+      const status = getExpStatus(exp);
+      const ward = (r['병동'] || '').trim();
+
+      return `<tr>
+        <td class="item-name">${r['품목명'] || '-'}</td>
+        <td>
+          <div class="qty-wrap">
+            <span class="qty-num">${qty}</span>
+            <div class="qty-bar">
+              <div class="qty-fill" style="width:${pct}%; background:${color};"></div>
+            </div>
+          </div>
+        </td>
+        <td style="color:#7a8aaa">${r['단위'] || '-'}</td>
+        <td style="font-variant-numeric:tabular-nums">${exp || '-'}</td>
+        <td><span class="badge ${status.cls}">${status.label}</span></td>
+        <td><span class="ward-label">${ward || '-'}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // 탭 클릭
+  document.getElementById('ward-tabs').addEventListener('click', e => {
+    const btn = e.target.closest('.ward-tab');
+    if (!btn) return;
+    document.querySelectorAll('.ward-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentWard = btn.dataset.ward;
+    render();
+  });
+
+  // 5분마다 자동 갱신
+  loadData();
+  setInterval(loadData, 5 * 60 * 1000);
+</script>
+</body>
+</html>
