@@ -407,8 +407,8 @@
           <th style="width:10%">기준치</th>
           <th style="width:16%">수량</th>
           <th style="width:8%">단위</th>
-          <th style="width:14%">유통기한</th>
-          <th style="width:13%">상태</th>
+          <th style="width:14%; border-left:2px solid #d0dae8; padding-left:14px">유통기한</th>
+          <th style="width:13%; border-right:2px solid #d0dae8;">유통기한 상태</th>
           <th style="width:17%">병동</th>
         </tr>
       </thead>
@@ -608,7 +608,7 @@
 
       return `<tr>
         <td class="item-name">${r['품목명'] || '-'}</td>
-        <td style="color:#7a8aaa; text-align:center">${max || '-'}</td>
+        <td style="color:#444; text-align:center; background:#f7f7f7">${max || '-'}</td>
         <td>
           <div class="qty-wrap">
             <span class="qty-num">${qty}</span>
@@ -618,8 +618,8 @@
           </div>
         </td>
         <td style="color:#7a8aaa">${r['단위'] || '-'}</td>
-        <td style="font-variant-numeric:tabular-nums">${exp || '-'}</td>
-        <td><span class="badge ${status.cls}">${status.label}</span></td>
+        <td style="font-variant-numeric:tabular-nums; border-left:2px solid #e0e7f0; padding-left:14px">${exp || '-'}</td>
+        <td style="border-right:2px solid #e0e7f0;"><span class="badge ${status.cls}">${status.label}</span></td>
         <td><span class="ward-label">${ward || '-'}</span></td>
       </tr>`;
     }).join('');
