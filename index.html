@@ -110,7 +110,7 @@
   /* 요약 카드 */
   .summary-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 12px;
     margin-bottom: 1.25rem;
   }
@@ -370,12 +370,7 @@
       <div class="s-value" id="s-total">—</div>
       <div class="s-sub">종류</div>
     </div>
-    <div class="summary-card teal" onclick="setCardFilter('전체')" style="cursor:pointer">
-      <div class="s-label">총 재고 수량</div>
-      <div class="s-value" id="s-qty">—</div>
-      <div class="s-sub">전체 합계</div>
-    </div>
-    <div class="summary-card orange" onclick="setCardFilter('부족')" style="cursor:pointer" title="클릭하면 부족 재고만 표시">
+<div class="summary-card orange" onclick="setCardFilter('부족')" style="cursor:pointer" title="클릭하면 부족 재고만 표시">
       <div class="s-label">부족 재고 ↗</div>
       <div class="s-value" id="s-low">—</div>
       <div class="s-sub">기준치 미만</div>
@@ -546,7 +541,6 @@
 
     // 요약
     const total = wardData.length;
-    const totalQty = wardData.reduce((s, r) => s + (Number(r['수량']) || 0), 0);
 
     const today = new Date(); today.setHours(0,0,0,0);
     const soonCount = wardData.filter(r => {
@@ -576,7 +570,6 @@
     }).length;
 
     document.getElementById('s-total').textContent = total;
-    document.getElementById('s-qty').textContent = totalQty.toLocaleString();
 
     const lowEl = document.getElementById('s-low');
     lowEl.textContent = lowCount;
@@ -589,6 +582,16 @@
     const expEl = document.getElementById('s-exp');
     expEl.textContent = expiredCount;
     expEl.className = 's-value' + (expiredCount > 0 ? ' danger' : '');
+
+    // 정렬: 품목명 오름차순, 동일 품목명이면 입고일 오름차순
+    data.sort((a, b) => {
+      const nameA = (a['품목명'] || '').trim();
+      const nameB = (b['품목명'] || '').trim();
+      if (nameA !== nameB) return nameA.localeCompare(nameB, 'ko');
+      const dateA = normalizeDate(a['입고일'] || '') || '';
+      const dateB = normalizeDate(b['입고일'] || '') || '';
+      return dateA.localeCompare(dateB);
+    });
 
     // 테이블
     const tbody = document.getElementById('inv-body');
@@ -649,9 +652,9 @@
     render();
   });
 
-  // 1분마다 자동 갱신
+  // 5분마다 자동 갱신
   loadData();
-  setInterval(loadData, 1 * 60 * 1000);
+  setInterval(loadData, 5 * 60 * 1000);
 </script>
 </body>
 </html>
