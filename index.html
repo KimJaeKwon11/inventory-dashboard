@@ -127,7 +127,7 @@
   .summary-card.orange { border-left-color: #f57c00; }
   .summary-card.red { border-left-color: #c62828; }
   .summary-card.yellow { border-left-color: #f9a825; }
-  .summary-card.active-filter { box-shadow: 0 0 0 2px #1976d2; }
+  .summary-card.active-filter { box-shadow: 0 0 0 3px #1976d2; border-width: 6px; outline: 2px solid #1976d2; outline-offset: 1px; }
 
   .summary-card .s-label {
     font-size: 12px;
@@ -633,7 +633,7 @@
   function setCardFilter(filter) {
     currentFilter = filter;
     document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('active-filter'));
-    const map = { '부족': 2, '임박': 3, '만료': 4 };
+    const map = { '부족': 1, '임박': 2, '만료': 3 };
     if (map[filter] !== undefined) {
       document.querySelectorAll('.summary-card')[map[filter]].classList.add('active-filter');
     }
